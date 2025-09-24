@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教師端 - 上課反應系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .classroom-info {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .setup-section, .dashboard {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .setup-section h2, .dashboard h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+        
+        .btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(238, 90, 82, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .classroom-code {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px dashed #dee2e6;
+            margin: 1rem 0;
+        }
+        
+        .code-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff6b6b;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ff6b6b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .reactions-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .reaction-item {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #ff6b6b;
+            position: relative;
+        }
+        
+        .reaction-item.resolved {
+            opacity: 0.6;
+            border-left-color: #28a745;
+        }
+        
+        .reaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        
+        .student-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .reaction-time {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .reaction-type {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .reaction-message {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        
+        .reaction-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 3rem;
+        }
+        
+        .empty-state img {
+            width: 80px;
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .classroom-info {
+                flex-direction: column;
+                align-items: start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👨‍🏫 教師端控制台</h1>
+        <div class="classroom-info" id="classroomInfo" style="display: none;">
+            <div class="info-item">
+                <strong>課堂名稱：</strong><span id="classroomName">-</span>
+            </div>
+            <div class="info-item">
+                <strong>課堂代碼：</strong><span id="classroomCodeHeader">-</span>
+            </div>
+            <div class="info-item">
+                <strong>在線學生：</strong><span id="studentCountHeader">0</span> 人
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- 課堂設置區域 -->
+        <div class="setup-section" id="setupSection">
+            <h2>🏫 建立新課堂</h2>
+            <div class="input-group">
+                <label for="classroomName">課堂名稱：</label>
+                <input type="text" id="classroomNameInput" placeholder="例如：數學課、物理實驗..." />
+            </div>
+            <button class="btn btn-primary" onclick="createClassroom()">
+                建立課堂
+            </button>
+        </div>
+        
+        <!-- 課堂代碼顯示 -->
+        <div class="setup-section hidden" id="codeSection">
+            <h2>📋 課堂代碼</h2>
+            <div class="classroom-code">
+                <div class="code-display" id="classroomCode">-</div>
+                <p>請將此代碼提供給學生加入課堂</p>
+                <button class="btn btn-secondary btn-small" onclick="copyClassroomCode()">
+                    📋 複製代碼
+                </button>
+            </div>
+        </div>
+        
+        <!-- 控制台 -->
+        <div class="dashboard hidden" id="dashboard">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="studentCount">0</div>
+                    <div class="stat-label">在線學生</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="reactionCount">0</div>
+                    <div class="stat-label">待處理反應</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="resolvedCount">0</div>
+                    <div class="stat-label">已處理反應</div>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>📢 學生即時反應</h2>
+                <button class="btn btn-secondary btn-small" onclick="clearAllReactions()">
+                    🗑️ 清空所有反應
+                </button>
+            </div>
+            
+            <div id="reactionsList" class="reactions-list">
+                <div class="empty-state">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+                    <p>目前還沒有學生反應</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">學生的反應會即時顯示在這裡</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket;
+        let currentClassroom = null;
+        let reactions = [];
+        let resolvedReactions = [];
+
+        function createClassroom() {
+            const classroomName = document.getElementById('classroomNameInput').value.trim();
+            if (!classroomName) {
+                alert('請輸入課堂名稱');
+                return;
+            }
+
+            fetch('/api/classroom/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: classroomName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentClassroom = data.classroom;
+                    showClassroomCode(data.classroomId, classroomName);
+                    initializeSocket(data.classroomId);
+                } else {
+                    alert('建立課堂失敗');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('建立課堂時發生錯誤');
+            });
+        }
+
+        function showClassroomCode(classroomId, classroomName) {
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('codeSection').classList.remove('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('classroomInfo').style.display = 'flex';
+            
+            document.getElementById('classroomCode').textContent = classroomId;
+            document.getElementById('classroomName').textContent = classroomName;
+            document.getElementById('classroomCodeHeader').textContent = classroomId;
+        }
+
+        function initializeSocket(classroomId) {
+            socket = io();
+
+            socket.emit('join-classroom', {
+                classroomId: classroomId,
+                userType: 'teacher',
+                userName: '教師'
+            });
+
+            socket.on('joined-classroom', (data) => {
+                if (data.success) {
+                    console.log('成功加入課堂');
+                    updateStudentCount(data.studentCount || 0);
+                } else {
+                    alert('加入課堂失敗: ' + data.message);
+                }
+            });
+
+            socket.on('student-joined', (data) => {
+                updateStudentCount(data.studentCount);
+                console.log(`學生 ${data.studentName} 加入了課堂`);
+            });
+
+            socket.on('student-left', (data) => {
+                updateStudentCount(data.studentCount);
+                console.log(`學生 ${data.studentName} 離開了課堂`);
+            });
+
+            socket.on('new-reaction', (reaction) => {
+                reactions.unshift(reaction);
+                renderReactions();
+                updateStats();
+                
+                // 播放提示音（如果需要）
+                console.log('新的學生反應:', reaction);
+            });
+
+            socket.on('reaction-resolved', (data) => {
+                const reaction = reactions.find(r => r.id === data.reactionId);
+                if (reaction) {
+                    reaction.resolved = true;
+                    resolvedReactions.push(reaction);
+                    renderReactions();
+                    updateStats();
+                }
+            });
+
+            socket.on('reactions-cleared', () => {
+                reactions = [];
+                resolvedReactions = [];
+                renderReactions();
+                updateStats();
+            });
+        }
+
+        function updateStudentCount(count) {
+            document.getElementById('studentCount').textContent = count;
+            document.getElementById('studentCountHeader').textContent = count;
+        }
+
+        function updateStats() {
+            const pendingCount = reactions.filter(r => !r.resolved).length;
+            const resolvedCount = reactions.filter(r => r.resolved).length;
+            
+            document.getElementById('reactionCount').textContent = pendingCount;
+            document.getElementById('resolvedCount').textContent = resolvedCount;
+        }
+
+        function renderReactions() {
+            const container = document.getElementById('reactionsList');
+            
+            if (reactions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+                        <p>目前還沒有學生反應</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">學生的反應會即時顯示在這裡</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const reactionsHtml = reactions.map(reaction => {
+                const time = new Date(reaction.timestamp).toLocaleString('zh-TW');
+                const typeText = getReactionTypeText(reaction.type);
+                
+                return `
+                    <div class="reaction-item ${reaction.resolved ? 'resolved' : ''}">
+                        <div class="reaction-header">
+                            <div>
+                                <div class="student-name">${reaction.studentName}</div>
+                                <div class="reaction-time">${time}</div>
+                            </div>
+                            ${reaction.resolved ? '<span style="color: #28a745;">✅ 已處理</span>' : ''}
+                        </div>
+                        <div class="reaction-type">${typeText}</div>
+                        <div class="reaction-message">${reaction.message}</div>
+                        ${!reaction.resolved ? `
+                            <div class="reaction-actions">
+                                <button class="btn btn-primary btn-small" onclick="resolveReaction('${reaction.id}')">
+                                    ✅ 標記為已處理
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = reactionsHtml;
+        }
+
+        function getReactionTypeText(type) {
+            const types = {
+                'confused': '😵‍💫 聽不懂',
+                'too-fast': '🏃‍♂️ 太快了',
+                'too-slow': '🐌 太慢了',
+                'volume': '🔊 聽不清楚',
+                'question': '❓ 有問題',
+                'break': '☕ 想休息',
+                'other': '💭 其他'
+            };
+            return types[type] || type;
+        }
+
+        function resolveReaction(reactionId) {
+            if (socket) {
+                socket.emit('resolve-reaction', { reactionId });
+            }
+        }
+
+        function clearAllReactions() {
+            if (confirm('確定要清空所有反應嗎？')) {
+                if (socket) {
+                    socket.emit('clear-reactions');
+                }
+            }
+        }
+
+        function copyClassroomCode() {
+            const code = document.getElementById('classroomCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('課堂代碼已複製到剪貼板！');
+            });
+        }
+    </script>
+</body>
+</html>

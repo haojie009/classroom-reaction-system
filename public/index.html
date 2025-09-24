@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上課即時反應系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+        
+        .role-buttons {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .role-btn {
+            padding: 1.5rem 2rem;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 150px;
+        }
+        
+        .teacher-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+        
+        .teacher-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(238, 90, 82, 0.3);
+        }
+        
+        .student-btn {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+        
+        .student-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(68, 160, 141, 0.3);
+        }
+        
+        .icon {
+            font-size: 2rem;
+        }
+        
+        .features {
+            margin-top: 3rem;
+            text-align: left;
+        }
+        
+        .features h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .features ul {
+            list-style: none;
+            color: #666;
+        }
+        
+        .features li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 上課即時反應系統</h1>
+        <p class="subtitle">讓學習更有效率，讓溝通更即時</p>
+        
+        <div class="role-buttons">
+            <a href="/teacher" class="role-btn teacher-btn">
+                <span class="icon">👨‍🏫</span>
+                <span>教師端</span>
+            </a>
+            
+            <a href="/student" class="role-btn student-btn">
+                <span class="icon">👨‍🎓</span>
+                <span>學生端</span>
+            </a>
+        </div>
+        
+        <div class="features">
+            <h3>🌟 系統功能</h3>
+            <ul>
+                <li>即時表達上課聽不懂的問題</li>
+                <li>教師可即時查看學生反應</li>
+                <li>支援多種反應類型和訊息</li>
+                <li>簡潔直觀的使用介面</li>
+                <li>跨裝置支援，手機平板都能用</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學生端 - 上課反應系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 1rem 2rem;
+            text-align: center;
+        }
+        
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .join-section, .reaction-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 2rem;
+        }
+        
+        .join-section h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(68, 160, 141, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .reaction-section {
+            display: none;
+        }
+        
+        .classroom-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .reaction-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .reaction-btn {
+            padding: 1.5rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .reaction-btn:hover {
+            border-color: #4ecdc4;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(78, 205, 196, 0.2);
+        }
+        
+        .reaction-btn.active {
+            border-color: #4ecdc4;
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+        
+        .reaction-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .reaction-text {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .message-section {
+            margin-bottom: 2rem;
+        }
+        
+        .message-section textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .message-section textarea:focus {
+            outline: none;
+            border-color: #4ecdc4;
+        }
+        
+        .send-section {
+            text-align: center;
+        }
+        
+        .status-message {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .reaction-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .reaction-btn {
+                padding: 1rem;
+            }
+            
+            .reaction-icon {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">🔌 連接中...</div>
+    
+    <div class="header">
+        <h1>👨‍🎓 學生反應系統</h1>
+        <p>有任何上課問題都可以即時告訴老師！</p>
+    </div>
+    
+    <div class="container">
+        <!-- 加入課堂區域 -->
+        <div class="join-section" id="joinSection">
+            <h2>🏫 加入課堂</h2>
+            <div class="input-group">
+                <label for="studentName">你的姓名：</label>
+                <input type="text" id="studentName" placeholder="請輸入你的姓名" />
+            </div>
+            <div class="input-group">
+                <label for="classroomCode">課堂代碼：</label>
+                <input type="text" id="classroomCode" placeholder="請輸入老師提供的課堂代碼" />
+            </div>
+            <button class="btn btn-primary" onclick="joinClassroom()" id="joinBtn">
+                加入課堂
+            </button>
+        </div>
+        
+        <!-- 反應區域 -->
+        <div class="reaction-section" id="reactionSection">
+            <div class="classroom-info" id="classroomInfo">
+                <h3 id="currentClassroom">課堂名稱</h3>
+                <p>你已成功加入課堂，可以開始表達你的反應</p>
+            </div>
+            
+            <h3 style="margin-bottom: 1rem; color: #333;">📢 選擇你的反應：</h3>
+            
+            <div class="reaction-buttons">
+                <div class="reaction-btn" data-type="confused">
+                    <span class="reaction-icon">😵‍💫</span>
+                    <span class="reaction-text">我聽不懂</span>
+                </div>
+                
+                <div class="reaction-btn" data-type="too-fast">
+                    <span class="reaction-icon">🏃‍♂️</span>
+                    <span class="reaction-text">講太快了</span>
+                </div>
+                
+                <div class="reaction-btn" data-type="too-slow">
+                    <span class="reaction-icon">🐌</span>
+                    <span class="reaction-text">可以快一點</span>
+                </div>
+                
+                <div class="reaction-btn" data-type="volume">
+                    <span class="reaction-icon">🔊</span>
+                    <span class="reaction-text">聽不清楚</span>
+                </div>
+                
+                <div class="reaction-btn" data-type="question">
+                    <span class="reaction-icon">❓</span>
+                    <span class="reaction-text">我有問題</span>
+                </div>
+                
+                <div class="reaction-btn" data-type="break">
+                    <span class="reaction-icon">☕</span>
+                    <span class="reaction-text">想要休息</span>
+                </div>
+            </div>
+            
+            <div class="message-section">
+                <label for="reactionMessage" style="display: block; margin-bottom: 0.5rem; color: #555; font-weight: 500;">
+                    補充說明（選填）：
+                </label>
+                <textarea id="reactionMessage" placeholder="你可以在這裡詳細說明你的問題或想法..."></textarea>
+            </div>
+            
+            <div class="send-section">
+                <button class="btn btn-primary" onclick="sendReaction()" id="sendBtn" disabled>
+                    📤 發送反應給老師
+                </button>
+            </div>
+            
+            <div id="statusMessage" class="hidden"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket;
+        let currentClassroomId = null;
+        let selectedReactionType = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 綁定反應按鈕事件
+            document.querySelectorAll('.reaction-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    selectReaction(this.dataset.type, this);
+                });
+            });
+
+            // 檢查是否有保存的用戶資訊
+            const savedName = localStorage.getItem('studentName');
+            if (savedName) {
+                document.getElementById('studentName').value = savedName;
+            }
+        });
+
+        function selectReaction(type, element) {
+            // 移除其他按鈕的選中狀態
+            document.querySelectorAll('.reaction-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 選中當前按鈕
+            element.classList.add('active');
+            selectedReactionType = type;
+            
+            // 啟用發送按鈕
+            document.getElementById('sendBtn').disabled = false;
+        }
+
+        function joinClassroom() {
+            const studentName = document.getElementById('studentName').value.trim();
+            const classroomCode = document.getElementById('classroomCode').value.trim();
+            
+            if (!studentName) {
+                showStatus('請輸入你的姓名', 'error');
+                return;
+            }
+            
+            if (!classroomCode) {
+                showStatus('請輸入課堂代碼', 'error');
+                return;
+            }
+            
+            // 保存學生姓名
+            localStorage.setItem('studentName', studentName);
+            
+            // 禁用按鈕防止重複點擊
+            document.getElementById('joinBtn').disabled = true;
+            document.getElementById('joinBtn').textContent = '加入中...';
+            
+            // 初始化 Socket 連接
+            socket = io();
+            
+            socket.on('connect', () => {
+                updateConnectionStatus(true);
+                
+                socket.emit('join-classroom', {
+                    classroomId: classroomCode,
+                    userType: 'student',
+                    userName: studentName
+                });
+            });
+            
+            socket.on('disconnect', () => {
+                updateConnectionStatus(false);
+            });
+            
+            socket.on('joined-classroom', (data) => {
+                if (data.success) {
+                    currentClassroomId = classroomCode;
+                    showClassroomInterface(data.classroom);
+                } else {
+                    showStatus('加入課堂失敗: ' + data.message, 'error');
+                    resetJoinButton();
+                }
+            });
+            
+            socket.on('reaction-resolved', (data) => {
+                showStatus('老師已經看到你的反應了！', 'success');
+            });
+            
+            socket.on('reactions-cleared', () => {
+                showStatus('老師清空了所有反應', 'success');
+            });
+        }
+
+        function showClassroomInterface(classroom) {
+            document.getElementById('joinSection').style.display = 'none';
+            document.getElementById('reactionSection').style.display = 'block';
+            document.getElementById('currentClassroom').textContent = classroom.name;
+        }
+
+        function sendReaction() {
+            if (!selectedReactionType) {
+                showStatus('請選擇一個反應類型', 'error');
+                return;
+            }
+            
+            const message = document.getElementById('reactionMessage').value.trim() || '無額外說明';
+            
+            // 禁用發送按鈕
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('sendBtn').textContent = '發送中...';
+            
+            socket.emit('student-reaction', {
+                type: selectedReactionType,
+                message: message
+            });
+            
+            // 顯示成功訊息
+            showStatus('你的反應已經發送給老師了！', 'success');
+            
+            // 重置介面
+            setTimeout(() => {
+                resetReactionInterface();
+            }, 2000);
+        }
+
+        function resetReactionInterface() {
+            // 清除選中狀態
+            document.querySelectorAll('.reaction-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 清空訊息
+            document.getElementById('reactionMessage').value = '';
+            
+            // 重置變數
+            selectedReactionType = null;
+            
+            // 重置按鈕
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('sendBtn').textContent = '📤 發送反應給老師';
+        }
+
+        function resetJoinButton() {
+            document.getElementById('joinBtn').disabled = false;
+            document.getElementById('joinBtn').textContent = '加入課堂';
+        }
+
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = 'status-message status-' + type;
+            statusElement.classList.remove('hidden');
+            
+            // 3秒後自動隱藏
+            setTimeout(() => {
+                statusElement.classList.add('hidden');
+            }, 3000);
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (connected) {
+                statusElement.textContent = '🟢 已連接';
+                statusElement.className = 'connection-status connected';
+            } else {
+                statusElement.textContent = '🔴 連接中斷';
+                statusElement.className = 'connection-status disconnected';
+            }
+        }
+    </script>
+</body>
+</html>
