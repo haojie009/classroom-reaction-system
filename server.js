@@ -13,12 +13,23 @@ const classrooms = new Map();
 const reactions = new Map();
 
 // 靜態文件服務
+// 簡單請求紀錄，協助診斷（可視需要保留或移除）
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 app.use(express.static('public'));
 app.use(express.json());
 
 // 路由
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 健康檢查端點，供雲端平台檢測
+app.get('/health', (req, res) => {
+    res.status(200).send('ok');
 });
 
 app.get('/teacher', (req, res) => {
