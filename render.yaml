@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: classroom-reaction-system
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production

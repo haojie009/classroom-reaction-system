@@ -181,8 +181,22 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`上課反應系統運行在 http://localhost:${PORT}`);
-    console.log('教師端: http://localhost:' + PORT + '/teacher');
-    console.log('學生端: http://localhost:' + PORT + '/student');
+const HOST = '0.0.0.0';
+
+server.listen(PORT, HOST, () => {
+    console.log(`上課反應系統運行中，位於 ${HOST}:${PORT}`);
+    console.log('教師端: /teacher');
+    console.log('學生端: /student');
+});
+
+server.on('error', (err) => {
+    console.error('Server error:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
 });
