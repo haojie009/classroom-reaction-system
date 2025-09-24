@@ -223,6 +223,21 @@
         .hidden {
             display: none;
         }
+
+        .poll-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        .poll-options { margin-top: 1rem; }
+        .poll-options .option-row { display: flex; gap: .5rem; margin-bottom: .5rem; }
+        .poll-options input { flex: 1; }
+        .poll-actions { display:flex; gap:.5rem; margin-top: 1rem; }
+        .poll-result-bar { height: 14px; background:#eee; border-radius: 7px; overflow:hidden; }
+        .poll-result-fill { height: 100%; background: linear-gradient(135deg, #4ecdc4, #44a08d); }
+        .poll-meta { color:#666; font-size:.9rem; }
         
         .empty-state {
             text-align: center;
@@ -266,6 +281,37 @@
     </div>
     
     <div class="container">
+        <!-- 投票管理 -->
+        <div class="poll-section" id="pollSection" style="display:none;">
+            <h2>🗳️ 即時投票</h2>
+            <div id="pollCreator">
+                <div class="input-group">
+                    <label>投票題目：</label>
+                    <input type="text" id="pollQuestion" placeholder="例：這段內容難度如何？" />
+                </div>
+                <div class="poll-options" id="pollOptions">
+                    <div class="option-row"><input type="text" placeholder="選項 1" value="容易" /></div>
+                    <div class="option-row"><input type="text" placeholder="選項 2" value="普通" /></div>
+                    <div class="option-row"><input type="text" placeholder="選項 3" value="困難" /></div>
+                </div>
+                <div class="poll-actions">
+                    <button class="btn btn-secondary btn-small" onclick="addPollOption()">➕ 新增選項</button>
+                    <button class="btn btn-primary" onclick="startPoll()">▶️ 開始投票</button>
+                </div>
+            </div>
+
+            <div id="pollLive" class="hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h3 id="pollQuestionLive" style="margin:0;">投票題目</h3>
+                    <span class="poll-meta" id="pollMeta">—</span>
+                </div>
+                <div id="pollResults"></div>
+                <div class="poll-actions">
+                    <button class="btn btn-secondary btn-small" onclick="endPoll()">⏹️ 結束投票</button>
+                    <button class="btn btn-secondary btn-small" onclick="clearPoll()">🧹 清除投票</button>
+                </div>
+            </div>
+        </div>
         <!-- 課堂設置區域 -->
         <div class="setup-section" id="setupSection">
             <h2>🏫 建立新課堂</h2>
@@ -365,6 +411,7 @@
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('codeSection').classList.remove('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('pollSection').style.display = 'block';
             document.getElementById('classroomInfo').style.display = 'flex';
             
             document.getElementById('classroomCode').textContent = classroomId;
@@ -385,6 +432,10 @@
                 if (data.success) {
                     console.log('成功加入課堂');
                     updateStudentCount(data.studentCount || 0);
+                        // 若有進行中的投票，恢復顯示
+                        if (data.activePoll) {
+                            showLivePoll(data.activePoll);
+                        }
                 } else {
                     alert('加入課堂失敗: ' + data.message);
                 }
@@ -425,11 +476,104 @@
                 renderReactions();
                 updateStats();
             });
+
+                // 投票事件
+                socket.on('poll-started', (poll) => {
+                    showLivePoll(poll);
+                });
+                socket.on('poll-updated', (poll) => {
+                    renderPollResults(poll);
+                });
+                socket.on('poll-ended', (poll) => {
+                    renderPollResults(poll);
+                    document.getElementById('pollMeta').textContent = `已結束，共 ${poll.totalVotes} 票`;
+                });
+                socket.on('poll-cleared', () => {
+                    resetPollUI();
+                });
         }
 
         function updateStudentCount(count) {
             document.getElementById('studentCount').textContent = count;
             document.getElementById('studentCountHeader').textContent = count;
+        }
+
+        // ===== 投票相關 =====
+        function addPollOption() {
+            const container = document.getElementById('pollOptions');
+            const row = document.createElement('div');
+            row.className = 'option-row';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = `選項 ${container.children.length + 1}`;
+            row.appendChild(input);
+            container.appendChild(row);
+        }
+
+        function startPoll() {
+            const question = document.getElementById('pollQuestion').value.trim();
+            const optionInputs = Array.from(document.querySelectorAll('#pollOptions input'));
+            const options = optionInputs.map(i => i.value.trim()).filter(Boolean);
+            if (!question || options.length < 2) {
+                alert('請輸入題目並至少兩個選項');
+                return;
+            }
+            socket.emit('create-poll', { question, options });
+        }
+
+        function showLivePoll(poll) {
+            document.getElementById('pollCreator').classList.add('hidden');
+            document.getElementById('pollLive').classList.remove('hidden');
+            document.getElementById('pollQuestionLive').textContent = poll.question;
+            renderPollResults(poll);
+            document.getElementById('pollMeta').textContent = `進行中，共 ${poll.totalVotes} 票`;
+        }
+
+        function renderPollResults(poll) {
+            const container = document.getElementById('pollResults');
+            const total = Math.max(1, poll.totalVotes);
+            container.innerHTML = poll.options.map(o => {
+                const percent = Math.round((o.count / total) * 100);
+                return `
+                    <div style="margin-bottom: .75rem;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:.25rem;">
+                            <strong>${o.text}</strong>
+                            <span>${o.count} 票（${percent}%）</span>
+                        </div>
+                        <div class="poll-result-bar">
+                            <div class="poll-result-fill" style="width:${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function endPoll() {
+            socket.emit('end-poll');
+        }
+
+        function clearPoll() {
+            socket.emit('clear-poll');
+            resetPollUI();
+        }
+
+        function resetPollUI() {
+            document.getElementById('pollCreator').classList.remove('hidden');
+            document.getElementById('pollLive').classList.add('hidden');
+            document.getElementById('pollResults').innerHTML = '';
+            document.getElementById('pollQuestion').value = '';
+            const container = document.getElementById('pollOptions');
+            container.innerHTML = '';
+            ['選項 1','選項 2'].forEach((ph,i)=>{
+                const row = document.createElement('div');
+                row.className = 'option-row';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = ph;
+                row.appendChild(input);
+                container.appendChild(row);
+            });
+            document.getElementById('pollMeta').textContent = '—';
         }
 
         function updateStats() {

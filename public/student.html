@@ -206,6 +206,18 @@
         .hidden {
             display: none;
         }
+
+        /* 投票樣式 */
+        .poll-card {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 14px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 1.5rem;
+        }
+        .poll-option { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.5rem .75rem; border:1px solid #e6e6e6; border-radius:10px; margin:.4rem 0; }
+        .poll-option button { margin-left:auto; }
+        .poll-meta { color:#666; font-size:.9rem; }
         
         .connection-status {
             position: fixed;
@@ -255,6 +267,14 @@
     </div>
     
     <div class="container">
+        <!-- 投票顯示 -->
+        <div id="pollArea" class="poll-card hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 id="pollQuestion">投票題目</h2>
+                <span class="poll-meta" id="pollStatus">—</span>
+            </div>
+            <div id="pollOptions" style="margin-top:.5rem;"></div>
+        </div>
         <!-- 加入課堂區域 -->
         <div class="join-section" id="joinSection">
             <h2>🏫 加入課堂</h2>
@@ -407,6 +427,9 @@
                 if (data.success) {
                     currentClassroomId = classroomCode;
                     showClassroomInterface(data.classroom);
+                    if (data.activePoll) {
+                        showPoll(data.activePoll);
+                    }
                 } else {
                     showStatus('加入課堂失敗: ' + data.message, 'error');
                     resetJoinButton();
@@ -419,6 +442,24 @@
             
             socket.on('reactions-cleared', () => {
                 showStatus('老師清空了所有反應', 'success');
+            });
+
+            // 投票事件
+            socket.on('poll-started', (poll) => {
+                showPoll(poll);
+            });
+            socket.on('poll-updated', (poll) => {
+                renderPollOptions(poll);
+                const s = document.getElementById('pollStatus');
+                if (s) s.textContent = `進行中，共 ${poll.totalVotes} 票`;
+            });
+            socket.on('poll-ended', (poll) => {
+                renderPollOptions(poll, true);
+                const s = document.getElementById('pollStatus');
+                if (s) s.textContent = `已結束，共 ${poll.totalVotes} 票`;
+            });
+            socket.on('poll-cleared', () => {
+                hidePoll();
             });
         }
 
@@ -497,6 +538,44 @@
                 statusElement.textContent = '🔴 連接中斷';
                 statusElement.className = 'connection-status disconnected';
             }
+        }
+
+        // ===== 投票相關 =====
+        function showPoll(poll) {
+            const area = document.getElementById('pollArea');
+            area.classList.remove('hidden');
+            document.getElementById('pollQuestion').textContent = poll.question;
+            const s = document.getElementById('pollStatus');
+            if (s) s.textContent = `進行中，共 ${poll.totalVotes} 票`;
+            renderPollOptions(poll);
+        }
+
+        function hidePoll() {
+            const area = document.getElementById('pollArea');
+            area.classList.add('hidden');
+            const opts = document.getElementById('pollOptions');
+            if (opts) opts.innerHTML = '';
+            const s = document.getElementById('pollStatus');
+            if (s) s.textContent = '—';
+        }
+
+        function renderPollOptions(poll, ended = false) {
+            const container = document.getElementById('pollOptions');
+            const total = Math.max(1, poll.totalVotes);
+            container.innerHTML = poll.options.map(o => {
+                const percent = Math.round((o.count / total) * 100);
+                return `
+                    <div class="poll-option">
+                        <div><strong>${o.text}</strong> <span style="color:#888;">${o.count} 票（${percent}%）</span></div>
+                        ${ended ? '' : `<button class="btn btn-primary btn-small" onclick="vote('${o.id}')">投這個</button>`}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function vote(optionId) {
+            if (!socket) return;
+            socket.emit('submit-vote', { optionId });
         }
     </script>
 </body>

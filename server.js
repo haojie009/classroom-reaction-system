@@ -48,7 +48,8 @@ app.post('/api/classroom/create', (req, res) => {
         name: req.body.name || '未命名課堂',
         createdAt: new Date(),
         students: 0,
-        reactions: []
+        reactions: [],
+        activePoll: null
     };
     
     classrooms.set(classroomId, classroom);
@@ -91,7 +92,8 @@ io.on('connection', (socket) => {
             socket.emit('joined-classroom', { 
                 success: true, 
                 classroom,
-                studentCount: classroom.students 
+                studentCount: classroom.students,
+                activePoll: classroom.activePoll
             });
             
             console.log(`${userType} ${userName} 加入課堂 ${classroomId}`);
@@ -129,6 +131,81 @@ io.on('connection', (socket) => {
                 console.log(`學生反應: ${userName} - ${type}: ${message}`);
             }
         }
+    });
+
+    // 教師建立投票
+    socket.on('create-poll', (data) => {
+        const classroomId = socket.classroomId;
+        if (!classroomId || socket.userType !== 'teacher') return;
+
+        const classroom = classrooms.get(classroomId);
+        if (!classroom) return;
+
+        const { question, options } = data || {};
+        if (!question || !Array.isArray(options) || options.length < 2) {
+            socket.emit('poll-error', { message: '投票至少需要問題與兩個選項' });
+            return;
+        }
+
+        // 建立新的投票
+        const pollId = uuidv4().substring(0, 8);
+        const poll = {
+            id: pollId,
+            question: String(question).trim(),
+            options: options.map((text, idx) => ({ id: `${idx+1}`, text: String(text).trim(), count: 0 })),
+            votesByStudent: {}, // key: socket.id, value: optionId
+            startedAt: new Date(),
+            ended: false
+        };
+
+        classroom.activePoll = poll;
+        io.to(classroomId).emit('poll-started', sanitizePollForClients(poll));
+    });
+
+    // 學生提交投票
+    socket.on('submit-vote', (data) => {
+        const classroomId = socket.classroomId;
+        if (!classroomId || socket.userType !== 'student') return;
+        const classroom = classrooms.get(classroomId);
+        if (!classroom || !classroom.activePoll || classroom.activePoll.ended) return;
+
+        const poll = classroom.activePoll;
+        const voterId = socket.id; // 以連線識別，避免重複投票
+        const { optionId } = data || {};
+        const option = poll.options.find(o => o.id === String(optionId));
+        if (!option) return;
+
+        if (poll.votesByStudent[voterId]) {
+            // 已投過票，忽略（如需支援改票，可在此調整計數）
+            return;
+        }
+
+        poll.votesByStudent[voterId] = option.id;
+        option.count += 1;
+
+        io.to(classroomId).emit('poll-updated', sanitizePollForClients(poll));
+    });
+
+    // 教師結束投票
+    socket.on('end-poll', () => {
+        const classroomId = socket.classroomId;
+        if (!classroomId || socket.userType !== 'teacher') return;
+        const classroom = classrooms.get(classroomId);
+        if (!classroom || !classroom.activePoll) return;
+
+        classroom.activePoll.ended = true;
+        classroom.activePoll.endedAt = new Date();
+        io.to(classroomId).emit('poll-ended', sanitizePollForClients(classroom.activePoll));
+    });
+
+    // 教師清除投票
+    socket.on('clear-poll', () => {
+        const classroomId = socket.classroomId;
+        if (!classroomId || socket.userType !== 'teacher') return;
+        const classroom = classrooms.get(classroomId);
+        if (!classroom) return;
+        classroom.activePoll = null;
+        io.to(classroomId).emit('poll-cleared');
     });
 
     // 教師標記反應已處理
@@ -179,6 +256,21 @@ io.on('connection', (socket) => {
         console.log('用戶斷線:', socket.id);
     });
 });
+
+// 僅回傳可公開的投票資料（不含 votesByStudent 明細）
+function sanitizePollForClients(poll) {
+    if (!poll) return null;
+    const totalVotes = Object.keys(poll.votesByStudent || {}).length;
+    return {
+        id: poll.id,
+        question: poll.question,
+        options: poll.options.map(o => ({ id: o.id, text: o.text, count: o.count })),
+        totalVotes,
+        startedAt: poll.startedAt,
+        ended: !!poll.ended,
+        endedAt: poll.endedAt || null
+    };
+}
 
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
