@@ -11,6 +11,8 @@ const io = socketIo(server);
 // 儲存課堂數據
 const classrooms = new Map();
 const reactions = new Map();
+// 每個課堂的投票倒數計時器
+const pollTimers = new Map(); // key: classroomId, value: timeoutId
 
 // 靜態文件服務
 // 簡單請求紀錄，協助診斷（可視需要保留或移除）
@@ -142,9 +144,14 @@ io.on('connection', (socket) => {
         if (!classroom) return;
 
         const { question, options } = data || {};
+        let { durationSec } = data || {};
         if (!question || !Array.isArray(options) || options.length < 2) {
             socket.emit('poll-error', { message: '投票至少需要問題與兩個選項' });
             return;
+        }
+        durationSec = parseInt(durationSec, 10);
+        if (!Number.isFinite(durationSec) || durationSec <= 0) {
+            durationSec = 60; // 預設 60 秒
         }
 
         // 建立新的投票
@@ -155,10 +162,28 @@ io.on('connection', (socket) => {
             options: options.map((text, idx) => ({ id: `${idx+1}`, text: String(text).trim(), count: 0 })),
             votesByStudent: {}, // key: socket.id, value: optionId
             startedAt: new Date(),
-            ended: false
+            ended: false,
+            durationSec,
+            endsAt: new Date(Date.now() + durationSec * 1000)
         };
 
         classroom.activePoll = poll;
+        // 清理既有倒數，啟動新的倒數
+        if (pollTimers.has(classroomId)) {
+            clearTimeout(pollTimers.get(classroomId));
+            pollTimers.delete(classroomId);
+        }
+        const timeoutId = setTimeout(() => {
+            // 安全檢查：課堂/投票仍存在且未結束
+            const cls = classrooms.get(classroomId);
+            if (!cls || !cls.activePoll || cls.activePoll.ended) return;
+            cls.activePoll.ended = true;
+            cls.activePoll.endedAt = new Date();
+            io.to(classroomId).emit('poll-ended', sanitizePollForClients(cls.activePoll));
+            pollTimers.delete(classroomId);
+        }, durationSec * 1000);
+        pollTimers.set(classroomId, timeoutId);
+
         io.to(classroomId).emit('poll-started', sanitizePollForClients(poll));
     });
 
@@ -195,6 +220,11 @@ io.on('connection', (socket) => {
 
         classroom.activePoll.ended = true;
         classroom.activePoll.endedAt = new Date();
+        // 清除倒數計時器
+        if (pollTimers.has(classroomId)) {
+            clearTimeout(pollTimers.get(classroomId));
+            pollTimers.delete(classroomId);
+        }
         io.to(classroomId).emit('poll-ended', sanitizePollForClients(classroom.activePoll));
     });
 
@@ -205,6 +235,11 @@ io.on('connection', (socket) => {
         const classroom = classrooms.get(classroomId);
         if (!classroom) return;
         classroom.activePoll = null;
+        // 清除倒數計時器
+        if (pollTimers.has(classroomId)) {
+            clearTimeout(pollTimers.get(classroomId));
+            pollTimers.delete(classroomId);
+        }
         io.to(classroomId).emit('poll-cleared');
     });
 
@@ -268,7 +303,10 @@ function sanitizePollForClients(poll) {
         totalVotes,
         startedAt: poll.startedAt,
         ended: !!poll.ended,
-        endedAt: poll.endedAt || null
+        endedAt: poll.endedAt || null,
+        durationSec: poll.durationSec || null,
+        endsAt: poll.endsAt || null,
+        serverTime: new Date()
     };
 }
 

@@ -232,8 +232,9 @@
             margin-bottom: 2rem;
         }
         .poll-options { margin-top: 1rem; }
-        .poll-options .option-row { display: flex; gap: .5rem; margin-bottom: .5rem; }
-        .poll-options input { flex: 1; }
+    .poll-options .option-row { display: flex; gap: .5rem; align-items:center; margin-bottom: .5rem; }
+    .poll-options input { flex: 1; }
+    .option-row .row-actions { display:flex; gap:.25rem; }
         .poll-actions { display:flex; gap:.5rem; margin-top: 1rem; }
         .poll-result-bar { height: 14px; background:#eee; border-radius: 7px; overflow:hidden; }
         .poll-result-fill { height: 100%; background: linear-gradient(135deg, #4ecdc4, #44a08d); }
@@ -289,10 +290,12 @@
                     <label>投票題目：</label>
                     <input type="text" id="pollQuestion" placeholder="例：這段內容難度如何？" />
                 </div>
+                <div class="input-group" style="max-width:320px;">
+                    <label>投票倒數（秒，預設 60）：</label>
+                    <input type="number" id="pollDuration" min="5" step="5" placeholder="60" />
+                </div>
                 <div class="poll-options" id="pollOptions">
-                    <div class="option-row"><input type="text" placeholder="選項 1" value="容易" /></div>
-                    <div class="option-row"><input type="text" placeholder="選項 2" value="普通" /></div>
-                    <div class="option-row"><input type="text" placeholder="選項 3" value="困難" /></div>
+                    <!-- 選項列會在初始化時填入預設 -->
                 </div>
                 <div class="poll-actions">
                     <button class="btn btn-secondary btn-small" onclick="addPollOption()">➕ 新增選項</button>
@@ -413,6 +416,8 @@
             document.getElementById('dashboard').classList.remove('hidden');
             document.getElementById('pollSection').style.display = 'block';
             document.getElementById('classroomInfo').style.display = 'flex';
+            // 初始化預設題目與選項
+            initDefaultPollFields();
             
             document.getElementById('classroomCode').textContent = classroomId;
             document.getElementById('classroomName').textContent = classroomName;
@@ -487,6 +492,7 @@
                 socket.on('poll-ended', (poll) => {
                     renderPollResults(poll);
                     document.getElementById('pollMeta').textContent = `已結束，共 ${poll.totalVotes} 票`;
+                    stopPollCountdownTick();
                 });
                 socket.on('poll-cleared', () => {
                     resetPollUI();
@@ -499,15 +505,42 @@
         }
 
         // ===== 投票相關 =====
-        function addPollOption() {
+        function addPollOption(value = '') {
             const container = document.getElementById('pollOptions');
             const row = document.createElement('div');
             row.className = 'option-row';
             const input = document.createElement('input');
             input.type = 'text';
             input.placeholder = `選項 ${container.children.length + 1}`;
+            input.value = value;
+            const actions = document.createElement('div');
+            actions.className = 'row-actions';
+            const up = document.createElement('button'); up.className='btn btn-secondary btn-small'; up.textContent='⬆'; up.title='上移';
+            const down = document.createElement('button'); down.className='btn btn-secondary btn-small'; down.textContent='⬇'; down.title='下移';
+            const del = document.createElement('button'); del.className='btn btn-secondary btn-small'; del.textContent='✖'; del.title='刪除';
+            up.onclick = () => moveOptionRow(row, -1);
+            down.onclick = () => moveOptionRow(row, +1);
+            del.onclick = () => { row.remove(); renumberPlaceholders(); };
             row.appendChild(input);
+            actions.appendChild(up); actions.appendChild(down); actions.appendChild(del);
+            row.appendChild(actions);
             container.appendChild(row);
+        }
+
+        function moveOptionRow(row, delta) {
+            const container = document.getElementById('pollOptions');
+            const idx = Array.from(container.children).indexOf(row);
+            const newIdx = idx + delta;
+            if (newIdx < 0 || newIdx >= container.children.length) return;
+            container.removeChild(row);
+            container.insertBefore(row, container.children[newIdx]);
+            renumberPlaceholders();
+        }
+
+        function renumberPlaceholders() {
+            Array.from(document.querySelectorAll('#pollOptions .option-row input')).forEach((inp, i) => {
+                inp.placeholder = `選項 ${i+1}`;
+            });
         }
 
         function startPoll() {
@@ -518,7 +551,8 @@
                 alert('請輸入題目並至少兩個選項');
                 return;
             }
-            socket.emit('create-poll', { question, options });
+            const durationSec = parseInt(document.getElementById('pollDuration').value || '60', 10);
+            socket.emit('create-poll', { question, options, durationSec });
         }
 
         function showLivePoll(poll) {
@@ -526,7 +560,7 @@
             document.getElementById('pollLive').classList.remove('hidden');
             document.getElementById('pollQuestionLive').textContent = poll.question;
             renderPollResults(poll);
-            document.getElementById('pollMeta').textContent = `進行中，共 ${poll.totalVotes} 票`;
+            startPollCountdownTick(poll);
         }
 
         function renderPollResults(poll) {
@@ -562,18 +596,59 @@
             document.getElementById('pollLive').classList.add('hidden');
             document.getElementById('pollResults').innerHTML = '';
             document.getElementById('pollQuestion').value = '';
+            document.getElementById('pollDuration').value = '';
             const container = document.getElementById('pollOptions');
             container.innerHTML = '';
-            ['選項 1','選項 2'].forEach((ph,i)=>{
-                const row = document.createElement('div');
-                row.className = 'option-row';
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = ph;
-                row.appendChild(input);
-                container.appendChild(row);
-            });
+            // 回到預設選項
+            initDefaultPollFields();
             document.getElementById('pollMeta').textContent = '—';
+            stopPollCountdownTick();
+        }
+
+        function initDefaultPollFields() {
+            // 預設題目與三個選項
+            const q = document.getElementById('pollQuestion');
+            if (q) q.value = '你對剛剛內容的理解程度？';
+            const container = document.getElementById('pollOptions');
+            container.innerHTML = '';
+            ['完全聽得懂','部分聽得懂','完全聽不懂'].forEach(text => addPollOption(text));
+            renumberPlaceholders();
+        }
+
+        // ===== 倒數顯示（以 server endsAt/時間為準） =====
+        let pollTickTimer = null;
+        function startPollCountdownTick(poll) {
+            stopPollCountdownTick();
+            const meta = document.getElementById('pollMeta');
+            const endsAt = poll.endsAt ? new Date(poll.endsAt).getTime() : null;
+            // 以 serverTime 校正本地時間偏差
+            const serverNow = poll.serverTime ? new Date(poll.serverTime).getTime() : Date.now();
+            const localNow = Date.now();
+            const skew = localNow - serverNow; // 本地比 server 快多少毫秒
+
+            const tick = () => {
+                if (!endsAt) {
+                    meta.textContent = `進行中，共 ${poll.totalVotes} 票`;
+                    return;
+                }
+                const remainingMs = endsAt - (Date.now() - skew);
+                if (remainingMs <= 0) {
+                    meta.textContent = `已結束，共 ${poll.totalVotes} 票`;
+                    stopPollCountdownTick();
+                    return;
+                }
+                const s = Math.ceil(remainingMs / 1000);
+                meta.textContent = `進行中（剩餘 ${s} 秒），共 ${poll.totalVotes} 票`;
+            };
+            tick();
+            pollTickTimer = setInterval(tick, 250);
+        }
+
+        function stopPollCountdownTick() {
+            if (pollTickTimer) {
+                clearInterval(pollTickTimer);
+                pollTickTimer = null;
+            }
         }
 
         function updateStats() {

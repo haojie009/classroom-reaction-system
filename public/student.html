@@ -450,16 +450,17 @@
             });
             socket.on('poll-updated', (poll) => {
                 renderPollOptions(poll);
-                const s = document.getElementById('pollStatus');
-                if (s) s.textContent = `進行中，共 ${poll.totalVotes} 票`;
+                startStudentCountdownTick(poll);
             });
             socket.on('poll-ended', (poll) => {
                 renderPollOptions(poll, true);
                 const s = document.getElementById('pollStatus');
                 if (s) s.textContent = `已結束，共 ${poll.totalVotes} 票`;
+                stopStudentCountdownTick();
             });
             socket.on('poll-cleared', () => {
                 hidePoll();
+                stopStudentCountdownTick();
             });
         }
 
@@ -545,8 +546,7 @@
             const area = document.getElementById('pollArea');
             area.classList.remove('hidden');
             document.getElementById('pollQuestion').textContent = poll.question;
-            const s = document.getElementById('pollStatus');
-            if (s) s.textContent = `進行中，共 ${poll.totalVotes} 票`;
+            startStudentCountdownTick(poll);
             renderPollOptions(poll);
         }
 
@@ -576,6 +576,41 @@
         function vote(optionId) {
             if (!socket) return;
             socket.emit('submit-vote', { optionId });
+        }
+
+        // ===== 投票倒數（學生端） =====
+        let studentTickTimer = null;
+        function startStudentCountdownTick(poll) {
+            stopStudentCountdownTick();
+            const label = document.getElementById('pollStatus');
+            const endsAt = poll.endsAt ? new Date(poll.endsAt).getTime() : null;
+            const serverNow = poll.serverTime ? new Date(poll.serverTime).getTime() : Date.now();
+            const localNow = Date.now();
+            const skew = localNow - serverNow;
+            const tick = () => {
+                if (!label) return;
+                if (!endsAt) {
+                    label.textContent = `進行中，共 ${poll.totalVotes} 票`;
+                    return;
+                }
+                const remainingMs = endsAt - (Date.now() - skew);
+                if (remainingMs <= 0) {
+                    label.textContent = `已結束，共 ${poll.totalVotes} 票`;
+                    stopStudentCountdownTick();
+                    return;
+                }
+                const s = Math.ceil(remainingMs / 1000);
+                label.textContent = `進行中（剩餘 ${s} 秒），共 ${poll.totalVotes} 票`;
+            };
+            tick();
+            studentTickTimer = setInterval(tick, 250);
+        }
+
+        function stopStudentCountdownTick() {
+            if (studentTickTimer) {
+                clearInterval(studentTickTimer);
+                studentTickTimer = null;
+            }
         }
     </script>
 </body>
