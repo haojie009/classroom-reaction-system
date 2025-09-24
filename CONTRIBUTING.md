@@ -5,12 +5,12 @@
 ## 🚀 開始貢獻
 
 ### 回報 Bug
-- 使用 [GitHub Issues](https://github.com/your-username/classroom-reaction-system/issues) 回報 bug
+- 使用 [GitHub Issues](https://github.com/haojie009/classroom-reaction-system/issues) 回報 bug
 - 請詳細描述問題和重現步驟
 - 如果可能，請提供螢幕截圖
 
 ### 建議新功能
-- 在 [GitHub Discussions](https://github.com/your-username/classroom-reaction-system/discussions) 中討論新功能
+- 在 [GitHub Discussions](https://github.com/haojie009/classroom-reaction-system/discussions) 中討論新功能
 - 描述功能的使用場景和預期效果
 
 ### 提交程式碼

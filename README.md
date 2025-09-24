@@ -47,7 +47,7 @@
 
 ### 1. 克隆專案
 ```bash
-git clone https://github.com/your-username/classroom-reaction-system.git
+git clone https://github.com/haojie009/classroom-reaction-system.git
 cd classroom-reaction-system
 ```
 
@@ -165,5 +165,5 @@ MIT License
 
 如有任何問題或建議：
 - 📧 Email: your-email@example.com
-- 🐛 [GitHub Issues](https://github.com/your-username/classroom-reaction-system/issues)
-- 💬 [Discussions](https://github.com/your-username/classroom-reaction-system/discussions)
+- 🐛 [GitHub Issues](https://github.com/haojie009/classroom-reaction-system/issues)
+- 💬 [Discussions](https://github.com/haojie009/classroom-reaction-system/discussions)

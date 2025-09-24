@@ -21,6 +21,14 @@
     "nodemon": "^3.0.1"
   },
   "keywords": ["classroom", "reaction", "education", "realtime"],
-  "author": "Your Name",
+  "author": "haojie009",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haojie009/classroom-reaction-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/haojie009/classroom-reaction-system/issues"
+  },
+  "homepage": "https://github.com/haojie009/classroom-reaction-system#readme",
   "license": "MIT"
 }
