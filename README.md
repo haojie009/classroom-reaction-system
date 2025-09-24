@@ -4,7 +4,9 @@
 
 ## 🌟 線上展示
 
-- 🚀 [線上展示](https://your-app.render.com)（部署後更新連結）
+- 🚀 [線上展示](https://classroom-reaction-system.onrender.com/)
+- 👨‍🏫 [教師端](https://classroom-reaction-system.onrender.com/teacher)
+- 👨‍🎓 [學生端](https://classroom-reaction-system.onrender.com/student)
 - 📱 響應式設計，支援各種裝置
 
 ## 功能特色
@@ -18,7 +20,7 @@
 ## 🚀 快速開始
 
 ### 線上使用
-訪問 [線上版本](https://your-app.render.com)（部署後更新）
+訪問 [線上版本](https://classroom-reaction-system.onrender.com/)
 
 ### 本地安裝
 
